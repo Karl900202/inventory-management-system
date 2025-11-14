@@ -5,11 +5,6 @@ const prisma = new PrismaClient();
 async function main() {
   const demoUserId = "9ee180ef-72d1-421e-8dcc-a951841d3b3f";
 
-  // Delete existing products for this user
-  await prisma.product.deleteMany({
-    where: { userId: demoUserId },
-  });
-
   // Create sample products
   await prisma.product.createMany({
     data: Array.from({ length: 25 }).map((_, i) => ({
