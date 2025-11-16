@@ -6,6 +6,7 @@ import {
   XAxis,
   YAxis,
   Area,
+  Tooltip,
 } from "recharts";
 
 interface ChartData {
@@ -45,6 +46,15 @@ export default function ProductsChart({ data }: { data: ChartData[] }) {
             dot={{ fill: "#8b5cf6", r: 2 }}
             activeDot={{ fill: "#8b5cf6", r: 4 }}
           />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "white",
+              border: "1px solid #e5e7eb",
+              borderRadius: "8px",
+              boxShadow: "0px 4px 6px -1px rgba(0,0,0,0.1)",
+            }}
+            labelStyle={{ color: "374151", fontWeight: "500" }}
+          ></Tooltip>
         </AreaChart>
       </ResponsiveContainer>
     </div>
