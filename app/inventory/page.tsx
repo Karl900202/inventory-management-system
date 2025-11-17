@@ -2,6 +2,8 @@ import Sidebar from "@/component/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatNumber } from "@/lib/format";
+import { deleteProduct } from "@/lib/actions/products";
+import DeleteButton from "@/component/delete-button";
 
 export default async function InvertoryPage() {
   const user = await getCurrentUser();
@@ -72,9 +74,7 @@ export default async function InvertoryPage() {
                           {formatNumber(product.lowStockAt)}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          <button className="text-red-600 hover:text-red-900">
-                            delete
-                          </button>
+                          <DeleteButton id={product.id} />
                         </td>
                       </tr>
                     );
