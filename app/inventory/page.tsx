@@ -54,35 +54,33 @@ export default async function InvertoryPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 ">
-                {totalProducts.map(
-                  (product: typeof totalProducts, key: totalProducts) => {
-                    return (
-                      <tr key={key} className="hover:bg-gray-50 text-center">
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {product.name}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {product.sku || "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {formatNumber(product.price)}$
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {formatNumber(product.quantity)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {formatNumber(product.lowStockAt)}
-                        </td>
-                        <DeleteButtonWrapper
-                          className={`px-6 py-4 text-sm text-red-600 hover:text-red-900`}
-                          id={product.id}
-                        >
-                          delete
-                        </DeleteButtonWrapper>
-                      </tr>
-                    );
-                  }
-                )}
+                {totalProducts.map((product, key) => {
+                  return (
+                    <tr key={key} className="hover:bg-gray-50 text-center">
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {product.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {product.sku || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {formatNumber(Number(product.price))}$
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {formatNumber(product.quantity)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {formatNumber(Number(product.lowStockAt))}
+                      </td>
+                      <DeleteButtonWrapper
+                        className={`px-6 py-4 text-sm text-red-600 hover:text-red-900`}
+                        id={product.id}
+                      >
+                        delete
+                      </DeleteButtonWrapper>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
