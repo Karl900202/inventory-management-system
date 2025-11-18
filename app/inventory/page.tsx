@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatNumber } from "@/lib/format";
 import { deleteProduct } from "@/lib/actions/products";
-import DeleteButton from "@/component/delete-button";
+import DeleteButtonWrapper from "@/component/inventory/delete-button-wrapper";
 
 export default async function InvertoryPage() {
   const user = await getCurrentUser();
@@ -45,7 +45,7 @@ export default async function InvertoryPage() {
                     return (
                       <th
                         key={table.index}
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                        className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase "
                       >
                         {table.name}
                       </th>
@@ -55,9 +55,9 @@ export default async function InvertoryPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 ">
                 {totalProducts.map(
-                  (product: typeof totalProducts, key: number) => {
+                  (product: typeof totalProducts, key: totalProducts) => {
                     return (
-                      <tr key={key} className="hover:bg-gray-50">
+                      <tr key={key} className="hover:bg-gray-50 text-center">
                         <td className="px-6 py-4 text-sm text-gray-500">
                           {product.name}
                         </td>
@@ -73,9 +73,12 @@ export default async function InvertoryPage() {
                         <td className="px-6 py-4 text-sm text-gray-500">
                           {formatNumber(product.lowStockAt)}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          <DeleteButton id={product.id} />
-                        </td>
+                        <DeleteButtonWrapper
+                          className={`px-6 py-4 text-sm text-red-600 hover:text-red-900`}
+                          id={product.id}
+                        >
+                          delete
+                        </DeleteButtonWrapper>
                       </tr>
                     );
                   }
