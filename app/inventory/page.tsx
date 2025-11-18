@@ -2,14 +2,21 @@ import Sidebar from "@/component/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatNumber } from "@/lib/format";
-import { deleteProduct } from "@/lib/actions/products";
 import DeleteButtonWrapper from "@/component/inventory/delete-button-wrapper";
 
-export default async function InvertoryPage() {
+export default async function InvertoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const user = await getCurrentUser();
   const userId = user.id;
+
+  const params = await searchParams;
+  const q = (params.q ?? "").trim();
+
   const totalProducts = await prisma.product.findMany({
-    where: { userId },
+    where: { userId, name: { contains: q, mode: "insensitive" } },
   });
   const tableHeader = [
     { name: "Name", index: 0 },
@@ -37,6 +44,20 @@ export default async function InvertoryPage() {
         </div>
 
         <div className="space-y-6">
+          {/* Search */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <form className="flex gap-2" action="/inventory" method="GET">
+              <input
+                name="q"
+                placeholder="Search products..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+              />
+              <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                Search
+              </button>
+            </form>
+          </div>
+
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -72,12 +93,14 @@ export default async function InvertoryPage() {
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {formatNumber(Number(product.lowStockAt))}
                       </td>
-                      <DeleteButtonWrapper
-                        className={`px-6 py-4 text-sm text-red-600 hover:text-red-900`}
-                        id={product.id}
-                      >
-                        delete
-                      </DeleteButtonWrapper>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        <DeleteButtonWrapper
+                          className={`px-6 py-4 text-sm text-red-600 hover:text-red-900`}
+                          id={product.id}
+                        >
+                          delete
+                        </DeleteButtonWrapper>
+                      </td>
                     </tr>
                   );
                 })}
