@@ -3,11 +3,17 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import InventoryClient from "./InventoryClient";
 
-export default async function InventoryPage() {
+export default async function InventoryPage({
+  searchParams,
+}: {
+  searchParams: { query: string };
+}) {
   const user = await getCurrentUser();
+  const params = await searchParams;
+  const query = (params.query ?? "").trim();
 
   const data = await prisma.product.findMany({
-    where: { userId: user.id },
+    where: { userId: user.id, name: { contains: query, mode: "insensitive" } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -29,7 +35,7 @@ export default async function InventoryPage() {
           </p>
         </div>
 
-        <InventoryClient initialProducts={initialProducts} />
+        <InventoryClient initialProducts={initialProducts} q={query} />
       </main>
     </div>
   );

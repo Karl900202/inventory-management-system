@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatNumber } from "@/lib/format";
 
 export type Product = {
@@ -17,26 +18,37 @@ export type Product = {
 
 export default function InventoryClient({
   initialProducts,
+  q,
 }: {
   initialProducts: Product[];
+  q: string;
 }) {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(q);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
 
-    const res = await fetch(`/inventory/api?q=${query}`, {
-      method: "GET",
-    });
+    const trimmed = query.trim();
 
-    if (!res.ok) {
-      console.error("Search failed", res.status);
+    // ⭐ 검색어가 빈 문자열이면 → URL 에 query 없애기
+    if (trimmed === "") {
+      router.push("/inventory");
+
+      const res = await fetch(`/inventory/api`, { method: "GET" });
+      const data = await res.json();
+
+      setProducts(Array.isArray(data) ? data : data.products ?? []);
       return;
     }
 
+    // ⭐ 검색어가 있으면 → URL 에 query 포함
+    router.push(`/inventory?query=${encodeURIComponent(trimmed)}`);
+
+    const res = await fetch(`/inventory/api?q=${trimmed}`, { method: "GET" });
     const data = await res.json();
-    setProducts(data);
+    setProducts(Array.isArray(data) ? data : data.products ?? []);
   }
 
   // 🗑 삭제
@@ -101,7 +113,7 @@ export default function InventoryClient({
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {products.map((product: Product) => (
+            {products.map((product) => (
               <tr key={product.id} className="hover:bg-gray-50 text-center">
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {product.name}
