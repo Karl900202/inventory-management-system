@@ -5,23 +5,41 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET(req: Request) {
   const user = await getCurrentUser();
   const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") ?? "";
 
-  const list = await prisma.product.findMany({
+  const q = searchParams.get("q") ?? "";
+  const page = Number(searchParams.get("page") ?? 1);
+  const pageSize = 10;
+
+  // ⭐ 검색 조건 기반 totalCount
+  const totalCount = await prisma.product.count({
     where: {
       userId: user.id,
       name: { contains: q, mode: "insensitive" },
     },
   });
 
-  const json = list.map((p) => ({
+  // ⭐ 페이지네이션 적용
+  const list = await prisma.product.findMany({
+    where: {
+      userId: user.id,
+      name: { contains: q, mode: "insensitive" },
+    },
+    orderBy: { createdAt: "desc" },
+    take: pageSize,
+    skip: (page - 1) * pageSize,
+  });
+
+  const items = list.map((p) => ({
     ...p,
     price: Number(p.price),
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
   }));
 
-  return Response.json(json);
+  return Response.json({
+    items,
+    totalCount,
+  });
 }
 
 /* DELETE => 삭제 */
