@@ -27,8 +27,7 @@ export default async function DashboardPage() {
   });
 
   const totalValue = allProducts.reduce(
-    (sum: number, product: typeof allProducts) =>
-      sum + Number(product.price) * Number(product.quantity),
+    (sum, product) => sum + Number(product.price) * Number(product.quantity),
     0
   );
 
@@ -49,7 +48,7 @@ export default async function DashboardPage() {
       "0"
     )}/${String(weekStart.getDate() + 1).padStart(2, "0")}`;
 
-    const weekProducts = allProducts.filter((product: typeof allProducts) => {
+    const weekProducts = allProducts.filter((product) => {
       const productData = new Date(product.createdAt);
       return productData >= weekStart && productData <= weekEnd;
     });
@@ -60,15 +59,12 @@ export default async function DashboardPage() {
     });
   }
 
-  const inStockCount = allProducts.filter(
-    (p: typeof allProducts) => Number(p.quantity) > 5
-  ).length;
+  const inStockCount = allProducts.filter((p) => Number(p.quantity) > 5).length;
   const lowStockCount = allProducts.filter(
-    (p: typeof allProducts) =>
-      Number(p.quantity) <= 5 && Number(p.quantity) >= 1
+    (p) => Number(p.quantity) <= 5 && Number(p.quantity) >= 1
   ).length;
   const outOfStockCount = allProducts.filter(
-    (p: typeof allProducts) => Number(p.quantity) === 0
+    (p) => Number(p.quantity) === 0
   ).length;
 
   const inStockPercentage =
@@ -155,7 +151,7 @@ export default async function DashboardPage() {
               </h2>
             </div>
             <div className="space-y-3">
-              {recent.map((product: typeof recent, key: number) => {
+              {recent.map((product, key) => {
                 const stockLevel =
                   product.quantity === 0
                     ? 0
