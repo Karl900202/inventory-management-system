@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatNumber } from "@/lib/format";
 import ReactPaginate from "react-paginate";
+import { formatNumber, formatUSD } from "@/lib/format";
 
 export type Product = {
   id: string;
@@ -29,125 +29,128 @@ export default function InventoryClient({
   q: string;
 }) {
   const router = useRouter();
+
+  /**
+   * 모든 state는 최초 렌더링에 한 번만 실행됨.
+   * 이후 Input을 입력하거나 페이지를 바꿔도 이 부분은 다시 실행되지 않는다.
+   */
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [query, setQuery] = useState(q);
   const [page, setPage] = useState(initPage);
   const [totalPageCount, setTotalProuctCount] = useState(totalProductCount);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  /**
+   * 공통 fetch 함수
+   * - 검색어, 페이지 등을 받아 API 호출
+   * - fetch 중복 제거
+   */
+  const fetchProducts = useCallback(async (q: string, page: number) => {
+    const trimmed = q.trim();
 
-    const trimmed = query.trim();
-
-    // 검색하면 페이지는 항상 1로 초기화
-    setPage(1);
-    const newPage = 1;
-
-    // 검색어 없음 → 전체 목록 + URL에서 query 제거
-    if (trimmed === "") {
-      router.push("/inventory?page=1");
-
-      const res = await fetch(`/inventory/api?page=${newPage}`, {
-        method: "GET",
-      });
-      const { items, totalCount } = await res.json();
-
-      setProducts(items);
-      setTotalProuctCount(totalCount);
-      return;
-    }
-
-    // 검색어 있음 → URL에 query 포함
-    router.push(
-      `/inventory?query=${encodeURIComponent(trimmed)}&page=${newPage}`
-    );
-
-    const res = await fetch(
-      `/inventory/api?q=${encodeURIComponent(trimmed)}&page=${newPage}`,
-      {
-        method: "GET",
-      }
-    );
-
-    const { items, totalCount } = await res.json();
-
-    setProducts(items);
-    setTotalProuctCount(totalCount);
-  }
-
-  async function handlePageChange(e: { selected: number }) {
-    const newPage = e.selected + 1;
-    setPage(newPage);
-
-    // URL 업데이트
-    const baseUrl = "/inventory";
-    const queryString = query.trim()
-      ? `?query=${encodeURIComponent(query.trim())}&page=${newPage}`
-      : `?page=${newPage}`;
-
-    router.push(baseUrl + queryString);
-
-    // API 요청
-    const apiUrl = query.trim()
-      ? `/inventory/api?q=${encodeURIComponent(query.trim())}&page=${newPage}`
-      : `/inventory/api?page=${newPage}`;
-
-    const res = await fetch(apiUrl, { method: "GET" });
-    const { items, totalCount } = await res.json();
-
-    setProducts(items);
-    setTotalProuctCount(totalCount);
-  }
-
-  // 🗑 삭제
-  async function handleDelete(id: string) {
-    const ok = confirm("정말 삭제할까요?");
-    if (!ok) return;
-
-    // 삭제 요청
-    const res = await fetch(`/inventory/api?id=${id}`, {
-      method: "DELETE",
-    });
-
-    if (!res.ok) {
-      console.error("Delete failed", res.status);
-      return;
-    }
-
-    // ⭐ 현재 page와 query 유지한 채 다시 fetch
-    const trimmed = query.trim();
     const apiUrl = trimmed
       ? `/inventory/api?q=${encodeURIComponent(trimmed)}&page=${page}`
       : `/inventory/api?page=${page}`;
 
-    // 최신 리스트 fetch
-    const { items, totalCount } = await fetch(apiUrl).then((r) => r.json());
+    const res = await fetch(apiUrl);
+    return res.json();
+  }, []);
 
-    // ⭐ 페이지가 비어있게 되면 이전 페이지로 이동
+  /**
+   * URL 업데이트 공통 함수
+   * push 로직 중복 제거 (검색 / 페이지 변경 모두 사용)
+   */
+  const updateUrl = useCallback(
+    (q: string, page: number) => {
+      const trimmed = q.trim();
+
+      const url = trimmed
+        ? `/inventory?query=${encodeURIComponent(trimmed)}&page=${page}`
+        : `/inventory?page=${page}`;
+
+      router.push(url);
+    },
+    [router]
+  );
+
+  /**
+   * 검색 기능
+   * - Enter 또는 Search 버튼 클릭 시 실행
+   * - 검색 시 항상 page = 1로 초기화
+   */
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+
+    const trimmed = query.trim();
+    const newPage = 1;
+
+    // URL 업데이트
+    updateUrl(trimmed, newPage);
+
+    // API 요청
+    const { items, totalCount } = await fetchProducts(trimmed, newPage);
+
+    // 상태 업데이트
+    setPage(newPage);
+    setProducts(items);
+    setTotalProuctCount(totalCount);
+  }
+
+  /**
+   *  페이지네이션 변경
+   */
+  async function handlePageChange(e: { selected: number }) {
+    const newPage = e.selected + 1;
+    const trimmed = query.trim();
+
+    // page 업데이트
+    setPage(newPage);
+
+    // URL 업데이트
+    updateUrl(trimmed, newPage);
+
+    // API 요청
+    const { items, totalCount } = await fetchProducts(trimmed, newPage);
+
+    setProducts(items);
+    setTotalProuctCount(totalCount);
+  }
+
+  /**
+   * 삭제 기능
+   * - 삭제 후 현재 페이지가 비면 자동으로 이전 페이지로 이동
+   * - 삭제 이후에도 검색어/페이지 상태 유지
+   */
+  async function handleDelete(id: string) {
+    const ok = confirm("정말 삭제할까요?");
+    if (!ok) return;
+
+    // DELETE 요청
+    const res = await fetch(`/inventory/api?id=${id}`, { method: "DELETE" });
+
+    if (!res.ok) {
+      console.error("Delete failed");
+      return;
+    }
+
+    const trimmed = query.trim();
+
+    // 삭제 후 현재 페이지 데이터 다시 fetch
+    const { items, totalCount } = await fetchProducts(trimmed, page);
+
+    // 현재 페이지가 비었으면 자동으로 이전 페이지로 이동
     if (items.length === 0 && page > 1) {
       const prevPage = page - 1;
+
       setPage(prevPage);
+      updateUrl(trimmed, prevPage);
 
-      // URL 업데이트
-      const url = trimmed
-        ? `/inventory?query=${encodeURIComponent(trimmed)}&page=${prevPage}`
-        : `/inventory?page=${prevPage}`;
-      router.push(url);
-
-      // 이전 페이지 데이터 다시 fetch
-      const prevApiUrl = trimmed
-        ? `/inventory/api?q=${encodeURIComponent(trimmed)}&page=${prevPage}`
-        : `/inventory/api?page=${prevPage}`;
-
-      const prevRes = await fetch(prevApiUrl);
-      const prevData = await prevRes.json();
-
+      const prevData = await fetchProducts(trimmed, prevPage);
       setProducts(prevData.items);
       setTotalProuctCount(prevData.totalCount);
       return;
     }
 
-    // 기본 업데이트 (페이지가 정상인 경우)
+    // 기본 업데이트
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
@@ -163,14 +166,14 @@ export default function InventoryClient({
 
   return (
     <div className="space-y-6">
-      {/* Search */}
+      {/*  Search */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <form className="flex gap-2" onSubmit={handleSearch}>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search products..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-purple-500"
           />
           <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
             Search
@@ -204,7 +207,7 @@ export default function InventoryClient({
                   {product.sku || "-"}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatNumber(Number(product.price))}$
+                  {formatUSD(product.price)}$
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {formatNumber(product.quantity)}
@@ -222,6 +225,8 @@ export default function InventoryClient({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
       <ReactPaginate
         previousLabel={<span className="flex items-center gap-1">‹ Prev</span>}
         nextLabel={<span className="flex items-center gap-1">Next ›</span>}
@@ -232,35 +237,15 @@ export default function InventoryClient({
         onPageChange={handlePageChange}
         forcePage={page - 1}
         containerClassName="flex items-center justify-center gap-1.5 mt-6 select-none"
-        /* 페이지 번호 버튼 (統一된 크기) */
         pageClassName="
-    min-w-[30px] h-7 
-    flex items-center justify-center
-    border border-gray-300 text-gray-700
-    rounded-md bg-white
-    hover:bg-gray-100 cursor-pointer transition text-sm
-  "
-        pageLinkClassName="outline-none"
-        /* Prev / Next 동일 크기 */
-        previousClassName="
-    px-3 h-7 flex items-center justify-center
-    border border-gray-300 text-gray-700
-    rounded-md bg-white
-    hover:bg-gray-100 cursor-pointer transition text-sm
-  "
-        nextClassName="
-    px-3 h-7 flex items-center justify-center
-    border border-gray-300 text-gray-700
-    rounded-md bg-white
-    hover:bg-gray-100 cursor-pointer transition text-sm
-  "
-        /* Active */
+          min-w-[30px] h-7 
+          flex items-center justify-center
+          border border-gray-300 text-gray-700
+          rounded-md bg-white
+          hover:bg-gray-100 cursor-pointer transition text-sm
+        "
         activeClassName="!bg-purple-600 !text-white !border-purple-600"
-        /* Disabled */
         disabledClassName="opacity-40 cursor-not-allowed"
-        /* ... 표시 */
-        breakClassName="px-2 text-gray-500 text-sm"
-        renderOnZeroPageCount={null}
       />
     </div>
   );
