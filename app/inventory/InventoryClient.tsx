@@ -227,26 +227,36 @@ export default function InventoryClient({
       </div>
 
       {/* Pagination */}
-      <ReactPaginate
-        previousLabel={<span className="flex items-center gap-1">‹ Prev</span>}
-        nextLabel={<span className="flex items-center gap-1">Next ›</span>}
-        breakLabel={"..."}
-        pageCount={Math.ceil(totalPageCount / 10)}
-        marginPagesDisplayed={1}
-        pageRangeDisplayed={3}
-        onPageChange={handlePageChange}
-        forcePage={page - 1}
-        containerClassName="flex items-center justify-center gap-1.5 mt-6 select-none"
-        pageClassName="
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <ReactPaginate
+          previousLabel={
+            <span className="flex items-center hover:text-gray-500 gap-2">
+              Prev
+            </span>
+          }
+          nextLabel={
+            <span className="flex items-center hover:text-gray-500 gap-2">
+              Next
+            </span>
+          }
+          breakLabel={"..."}
+          pageCount={Math.ceil(totalPageCount / 10)}
+          marginPagesDisplayed={1}
+          pageRangeDisplayed={3}
+          onPageChange={handlePageChange}
+          forcePage={page - 1}
+          containerClassName="flex items-center justify-center gap-1.5 select-none"
+          pageClassName="
           min-w-[30px] h-7 
           flex items-center justify-center
           border border-gray-300 text-gray-700
           rounded-md bg-white
           hover:bg-gray-100 cursor-pointer transition text-sm
         "
-        activeClassName="!bg-purple-600 !text-white !border-purple-600"
-        disabledClassName="opacity-40 cursor-not-allowed"
-      />
+          activeClassName="!bg-purple-600 !text-white !border-purple-600"
+          disabledClassName="opacity-40 cursor-not-allowed"
+        />
+      </div>
     </div>
   );
 }
