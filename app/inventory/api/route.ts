@@ -1,9 +1,23 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
+export async function getUser() {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+  return user;
+}
+
 /* GET => 검색 */
 export async function GET(req: Request) {
-  const user = await getCurrentUser();
+  // 현재 로그인된 사용자 가져오기
+  const user = await getUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
   const { searchParams } = new URL(req.url);
 
   const q = searchParams.get("q") ?? "";
@@ -44,7 +58,13 @@ export async function GET(req: Request) {
 
 /* DELETE => 삭제 */
 export async function DELETE(req: Request) {
-  const user = await getCurrentUser();
+  // 현재 로그인된 사용자 가져오기
+  const user = await getUser();
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
