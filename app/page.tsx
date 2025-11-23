@@ -1,10 +1,19 @@
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
 
-export default function Home() {
+import { redirect } from "next/navigation";
+
+export default async function Home() {
+  const user = await getCurrentUser();
+
+  // 로그인 상태 → /dashboard로 리다이렉트
+  if (user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
       <section className="container mx-auto px-4 py-16 text-center">
-        
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
           Inventory Management
         </h1>
@@ -30,7 +39,6 @@ export default function Home() {
             Learn More
           </Link>
         </div>
-
       </section>
     </div>
   );
