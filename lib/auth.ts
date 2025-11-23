@@ -9,3 +9,9 @@ export async function getCurrentUser() {
 
   return user;
 }
+
+export async function getCurrentUserHome() {
+  const user = await stackServerApp.getUser();
+
+  return user;
+}

@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserHome } from "@/lib/auth";
 
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserHome();
 
   // 로그인 상태 → /dashboard로 리다이렉트
   if (user) {
