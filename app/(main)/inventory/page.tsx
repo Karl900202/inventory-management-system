@@ -1,4 +1,3 @@
-import Sidebar from "@/component/sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import InventoryClient from "./InventoryClient";
@@ -36,22 +35,19 @@ export default async function InventoryPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar currentPath="/inventory" />
-      <main className="ml-64 p-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900">Inventory</h2>
-          <p className="text-sm text-gray-500">
-            manage your product and track inventory levels
-          </p>
-        </div>
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-gray-900">Inventory</h2>
+        <p className="text-sm text-gray-500">
+          manage your product and track inventory levels
+        </p>
+      </div>
 
-        <InventoryClient
-          initialProducts={initialProducts}
-          totalProductCount={totalProductCount}
-          initPage={page}
-          q={query}
-        />
-      </main>
+      <InventoryClient
+        initialProducts={initialProducts}
+        totalProductCount={totalProductCount}
+        initPage={page}
+        q={query}
+      />
     </div>
   );
 }
