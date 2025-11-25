@@ -1,6 +1,45 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { z } from "zod";
 
+export const updateProductSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1), // 필수 X (업데이트니까)
+  price: z.coerce.number().min(0), // coerce: "123" → 123 숫자 변환
+  quantity: z.coerce.number().min(0),
+  sku: z.string().optional().nullable(),
+  lowStockAt: z.coerce.number().min(0).optional().nullable(),
+});
+
+export async function PATCH(req: Request) {
+  const user = await getCurrentUser();
+
+  const json = await req.json();
+
+  // ⭐ Zod 유효성 체크
+  const parsed = updateProductSchema.safeParse(json);
+  if (!parsed.success) {
+    return new Response(JSON.stringify(parsed.error.flatten()), {
+      status: 400,
+    });
+  }
+
+  const { id, name, price, quantity, sku, lowStockAt } = parsed.data;
+
+  // ⭐ 업데이트
+  const updated = await prisma.product.updateMany({
+    where: { id, userId: user.id },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(price !== undefined && { price }),
+      ...(quantity !== undefined && { quantity }),
+      ...(sku !== undefined && { sku }),
+      ...(lowStockAt !== undefined && { lowStockAt }),
+    },
+  });
+
+  return Response.json({ updated });
+}
 /* GET => 검색 */
 export async function GET(req: Request) {
   // 현재 로그인된 사용자 가져오기

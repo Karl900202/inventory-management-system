@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ReactPaginate from "react-paginate";
+import UpdateProductModal from "./_components/UpdateProductModal";
 import { formatNumber, formatUSD } from "@/lib/format";
 
 export type Product = {
@@ -30,20 +31,22 @@ export default function InventoryClient({
 }) {
   const router = useRouter();
 
-  /**
-   * 모든 state는 최초 렌더링에 한 번만 실행됨.
-   * 이후 Input을 입력하거나 페이지를 바꿔도 이 부분은 다시 실행되지 않는다.
-   */
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [query, setQuery] = useState(q);
   const [page, setPage] = useState(initPage);
   const [totalPageCount, setTotalProuctCount] = useState(totalProductCount);
 
-  /**
-   * 공통 fetch 함수
-   * - 검색어, 페이지 등을 받아 API 호출
-   * - fetch 중복 제거
-   */
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  /** ESC 모달 닫기 */
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setEditingProduct(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const fetchProducts = useCallback(async (q: string, page: number) => {
     const trimmed = q.trim();
 
@@ -54,11 +57,19 @@ export default function InventoryClient({
     const res = await fetch(apiUrl);
     return res.json();
   }, []);
+  /** UPDATE 성공 */
+  async function handleUpdateSuccess() {
+    // 1. 모달 닫기
+    setEditingProduct(null);
 
-  /**
-   * URL 업데이트 공통 함수
-   * push 로직 중복 제거 (검색 / 페이지 변경 모두 사용)
-   */
+    // 2. 최신 리스트 가져오기
+    const trimmed = query.trim();
+    const { items, totalCount } = await fetchProducts(trimmed, page);
+
+    setProducts(items);
+    setTotalProuctCount(totalCount);
+  }
+
   const updateUrl = useCallback(
     (q: string, page: number) => {
       const trimmed = q.trim();
@@ -72,72 +83,46 @@ export default function InventoryClient({
     [router]
   );
 
-  /**
-   * 검색 기능
-   * - Enter 또는 Search 버튼 클릭 시 실행
-   * - 검색 시 항상 page = 1로 초기화
-   */
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
 
     const trimmed = query.trim();
     const newPage = 1;
 
-    // URL 업데이트
     updateUrl(trimmed, newPage);
-
-    // API 요청
     const { items, totalCount } = await fetchProducts(trimmed, newPage);
 
-    // 상태 업데이트
     setPage(newPage);
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
 
-  /**
-   *  페이지네이션 변경
-   */
   async function handlePageChange(e: { selected: number }) {
     const newPage = e.selected + 1;
     const trimmed = query.trim();
 
-    // page 업데이트
     setPage(newPage);
-
-    // URL 업데이트
     updateUrl(trimmed, newPage);
 
-    // API 요청
     const { items, totalCount } = await fetchProducts(trimmed, newPage);
 
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
 
-  /**
-   * 삭제 기능
-   * - 삭제 후 현재 페이지가 비면 자동으로 이전 페이지로 이동
-   * - 삭제 이후에도 검색어/페이지 상태 유지
-   */
   async function handleDelete(id: string) {
     const ok = confirm("정말 삭제할까요?");
     if (!ok) return;
 
-    // DELETE 요청
     const res = await fetch(`/inventory/api?id=${id}`, { method: "DELETE" });
-
     if (!res.ok) {
       console.error("Delete failed");
       return;
     }
 
     const trimmed = query.trim();
-
-    // 삭제 후 현재 페이지 데이터 다시 fetch
     const { items, totalCount } = await fetchProducts(trimmed, page);
 
-    // 현재 페이지가 비었으면 자동으로 이전 페이지로 이동
     if (items.length === 0 && page > 1) {
       const prevPage = page - 1;
 
@@ -150,23 +135,18 @@ export default function InventoryClient({
       return;
     }
 
-    // 기본 업데이트
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
 
-  const tableHeader = [
-    "Name",
-    "SKU",
-    "Price",
-    "Quantity",
-    "Low Stock At",
-    "Action",
-  ];
+  const tableHeader = useMemo(
+    () => ["Name", "SKU", "Price", "Quantity", "Low Stock At", "Action"],
+    []
+  );
 
   return (
     <div className="space-y-6">
-      {/*  Search */}
+      {/* Search */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <form className="flex gap-2" onSubmit={handleSearch}>
           <input
@@ -215,8 +195,20 @@ export default function InventoryClient({
                 <td className="px-6 py-4 text-sm text-gray-500">
                   {formatNumber(Number(product.lowStockAt))}
                 </td>
-                <td className="px-6 py-4 text-sm text-red-600 hover:text-red-900">
-                  <button onClick={() => handleDelete(product.id)}>
+
+                {/* UPDATE 버튼 → 모달 열기 */}
+                <td className="flex justify-center px-6 py-4">
+                  <button
+                    className="bg-white border border-gray-200 rounded-lg p-2 text-sm text-blue-600 hover:text-blue-900"
+                    onClick={() => setEditingProduct(product)}
+                  >
+                    update
+                  </button>
+
+                  <button
+                    className="bg-white border border-gray-200 rounded-lg p-2 text-sm text-red-600 hover:text-red-900 ml-2"
+                    onClick={() => handleDelete(product.id)}
+                  >
                     delete
                   </button>
                 </td>
@@ -247,16 +239,26 @@ export default function InventoryClient({
           forcePage={page - 1}
           containerClassName="flex items-center justify-center gap-1.5 select-none"
           pageClassName="
-          min-w-[30px] h-7 
-          flex items-center justify-center
-          border border-gray-300 text-gray-700
-          rounded-md bg-white
-          hover:bg-gray-100 cursor-pointer transition text-sm
-        "
+            min-w-[30px] h-7 
+            flex items-center justify-center
+            border border-gray-300 text-gray-700
+            rounded-md bg-white
+            hover:bg-gray-100 cursor-pointer transition text-sm
+          "
           activeClassName="!bg-purple-600 !text-white !border-purple-600"
           disabledClassName="opacity-40 cursor-not-allowed"
         />
       </div>
+
+      {editingProduct && (
+        <UpdateProductModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onUpdate={() => {
+            handleUpdateSuccess();
+          }}
+        />
+      )}
     </div>
   );
 }
