@@ -21,6 +21,9 @@ export default function AddProductForm() {
   }
 
   async function handleAddProduct() {
+    if (form.name === "") return alert("Name is required");
+    if (form.quantity === "") return alert("Quantity is required");
+    if (form.price === "") return alert("Price is required");
     setLoading(true);
 
     const body = {
