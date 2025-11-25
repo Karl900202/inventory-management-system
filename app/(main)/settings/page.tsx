@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth";
+import { AccountSettings } from "@stackframe/stack";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -11,6 +12,11 @@ export default async function SettingsPage() {
       <p className="text-sm text-gray-500">
         Manage your account settings and preferences.
       </p>
+      <div className="max-w-6xl mt-4">
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <AccountSettings fullPage />
+        </div>
+      </div>
     </div>
   );
 }
