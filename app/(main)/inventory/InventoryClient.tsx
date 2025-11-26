@@ -4,7 +4,7 @@ import { useCallback, useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ReactPaginate from "react-paginate";
 import UpdateProductModal from "./_components/UpdateProductModal";
-import { formatNumber, formatUSD } from "@/lib/format";
+import TableRow from "./_components/TableRow";
 
 export type Product = {
   id: string;
@@ -38,6 +38,13 @@ export default function InventoryClient({
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  const handleOpenEdit = useCallback(
+    (id: string) => {
+      const p = products.find((x) => x.id === id);
+      if (p) setEditingProduct(p);
+    },
+    [products]
+  );
   /** ESC 모달 닫기 */
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -58,17 +65,15 @@ export default function InventoryClient({
     return res.json();
   }, []);
   /** UPDATE 성공 */
-  async function handleUpdateSuccess() {
-    // 1. 모달 닫기
+  const handleUpdateSuccess = useCallback(async () => {
     setEditingProduct(null);
 
-    // 2. 최신 리스트 가져오기
-    const trimmed = query.trim();
+    const trimmed = q.trim(); // ← URL 기준 검색값
     const { items, totalCount } = await fetchProducts(trimmed, page);
 
     setProducts(items);
     setTotalProuctCount(totalCount);
-  }
+  }, [fetchProducts, q, page]);
 
   const updateUrl = useCallback(
     (q: string, page: number) => {
@@ -99,7 +104,7 @@ export default function InventoryClient({
 
   async function handlePageChange(e: { selected: number }) {
     const newPage = e.selected + 1;
-    const trimmed = query.trim();
+    const trimmed = q.trim();
 
     setPage(newPage);
     updateUrl(trimmed, newPage);
@@ -109,40 +114,51 @@ export default function InventoryClient({
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
+  const handleDelete = useCallback(
+    async (id: string) => {
+      const ok = confirm("정말 삭제할까요?");
+      if (!ok) return;
 
-  async function handleDelete(id: string) {
-    const ok = confirm("정말 삭제할까요?");
-    if (!ok) return;
+      const res = await fetch(`/inventory/api?id=${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        console.error("Delete failed");
+        return;
+      }
 
-    const res = await fetch(`/inventory/api?id=${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      console.error("Delete failed");
-      return;
-    }
+      // 최신 query 값(ref에서 읽기)
+      const trimmed = q.trim();
 
-    const trimmed = query.trim();
-    const { items, totalCount } = await fetchProducts(trimmed, page);
+      // 현재 페이지 데이터 다시 불러오기
+      const { items, totalCount } = await fetchProducts(trimmed, page);
 
-    if (items.length === 0 && page > 1) {
-      const prevPage = page - 1;
+      // 현재 페이지가 비어있는 경우 → 이전 페이지로 이동
+      if (items.length === 0 && page > 1) {
+        const prevPage = page - 1;
 
-      setPage(prevPage);
-      updateUrl(trimmed, prevPage);
+        setPage(prevPage);
+        updateUrl(trimmed, prevPage);
 
-      const prevData = await fetchProducts(trimmed, prevPage);
-      setProducts(prevData.items);
-      setTotalProuctCount(prevData.totalCount);
-      return;
-    }
+        const prevData = await fetchProducts(trimmed, prevPage);
+        setProducts(prevData.items);
+        setTotalProuctCount(prevData.totalCount);
+        return;
+      }
 
-    setProducts(items);
-    setTotalProuctCount(totalCount);
-  }
-
-  const tableHeader = useMemo(
-    () => ["Name", "SKU", "Price", "Quantity", "Low Stock At", "Action"],
-    []
+      // 정상 업데이트
+      setProducts(items);
+      setTotalProuctCount(totalCount);
+    },
+    [fetchProducts, page, q, updateUrl]
   );
+
+  const tableHeader = [
+    "Name",
+    "SKU",
+    "Price",
+    "Quantity",
+    "Low Stock At",
+    "Action",
+  ];
 
   return (
     <div className="space-y-6">
@@ -160,7 +176,6 @@ export default function InventoryClient({
           </button>
         </form>
       </div>
-
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="w-full">
@@ -179,45 +194,16 @@ export default function InventoryClient({
 
           <tbody className="bg-white divide-y divide-gray-200">
             {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50 text-center">
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {product.name}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {product.sku || "-"}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatUSD(product.price)}$
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatNumber(product.quantity)}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatNumber(Number(product.lowStockAt))}
-                </td>
-
-                {/* UPDATE 버튼 → 모달 열기 */}
-                <td className="flex justify-center px-6 py-4">
-                  <button
-                    className="bg-white border border-gray-200 rounded-lg p-2 text-sm text-blue-600 hover:text-blue-900"
-                    onClick={() => setEditingProduct(product)}
-                  >
-                    update
-                  </button>
-
-                  <button
-                    className="bg-white border border-gray-200 rounded-lg p-2 text-sm text-red-600 hover:text-red-900 ml-2"
-                    onClick={() => handleDelete(product.id)}
-                  >
-                    delete
-                  </button>
-                </td>
-              </tr>
+              <TableRow
+                key={product.id}
+                product={product}
+                onEdit={handleOpenEdit}
+                onDelete={handleDelete}
+              />
             ))}
           </tbody>
         </table>
       </div>
-
       {/* Pagination */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <ReactPaginate
@@ -249,14 +235,12 @@ export default function InventoryClient({
           disabledClassName="opacity-40 cursor-not-allowed"
         />
       </div>
-
+      {/* stable props */}
       {editingProduct && (
         <UpdateProductModal
           product={editingProduct}
-          onClose={() => setEditingProduct(null)}
-          onUpdate={() => {
-            handleUpdateSuccess();
-          }}
+          onClose={setEditingProduct}
+          onUpdate={handleUpdateSuccess}
         />
       )}
     </div>

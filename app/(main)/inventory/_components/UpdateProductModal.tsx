@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { Product } from "../InventoryClient";
+import React from "react";
 
-export default function UpdateProductModal({
+function UpdateProductModal({
   product,
   onClose,
   onUpdate,
 }: {
   product: Product;
-  onClose: () => void;
-  onUpdate: () => void;
+  onClose: (value: Product | null) => void;
+  onUpdate: () => Promise<void>;
 }) {
   // --- 입력 상태 정의 ---
   const [name, setName] = useState(product.name);
@@ -50,7 +51,7 @@ export default function UpdateProductModal({
         return;
       }
 
-      onUpdate(); // 부모 리스트 새로고침 + 모달 닫기 Callback
+      await onUpdate(); // 부모 리스트 새로고침 + 모달 닫기 Callback
     } catch (err) {
       console.error(err);
       alert("fail update");
@@ -62,7 +63,9 @@ export default function UpdateProductModal({
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      onClick={onClose}
+      onClick={() => {
+        onClose(null);
+      }}
     >
       <div
         className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl"
@@ -128,7 +131,9 @@ export default function UpdateProductModal({
         <div className="flex justify-end gap-2 mt-6">
           <button
             className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-            onClick={onClose}
+            onClick={() => {
+              onClose(null);
+            }}
           >
             Cancel
           </button>
@@ -145,3 +150,5 @@ export default function UpdateProductModal({
     </div>
   );
 }
+
+export default React.memo(UpdateProductModal);

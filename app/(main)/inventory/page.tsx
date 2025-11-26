@@ -7,25 +7,29 @@ export default async function InventoryPage({
 }: {
   searchParams: { query: string; page: number };
 }) {
+  console.log(111111111111);
   const user = await getCurrentUser();
-  const params = await searchParams;
+  const params = searchParams;
   const query = (params.query ?? "").trim();
-  const page = params.page ?? 1;
+  const rawPage = Number(params.page);
+  const page = !rawPage || rawPage < 1 ? 1 : rawPage;
 
-  const data = await prisma.product.findMany({
-    where: { userId: user.id, name: { contains: query, mode: "insensitive" } },
-    take: 10,
-    skip: (page - 1) * 10,
-    orderBy: { createdAt: "desc" },
-  });
+  const where = {
+    userId: user.id,
+    ...(query && {
+      name: { contains: query, mode: "insensitive" as const },
+    }),
+  };
 
-  const totalProductCount = await prisma.product.count({
-    where: {
-      userId: user.id,
-      name: { contains: query, mode: "insensitive" },
-    },
-  });
-
+  const [data, totalProductCount] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      take: 10,
+      skip: (page - 1) * 10,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.product.count({ where }),
+  ]);
   const initialProducts = data.map((p) => ({
     ...p,
     price: Number(p.price),
