@@ -7,7 +7,6 @@ export default async function InventoryPage({
 }: {
   searchParams: { query: string; page: number };
 }) {
-  console.log(111111111111);
   const user = await getCurrentUser();
   const params = searchParams;
   const query = (params.query ?? "").trim();

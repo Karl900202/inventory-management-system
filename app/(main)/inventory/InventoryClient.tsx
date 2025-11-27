@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ReactPaginate from "react-paginate";
 import UpdateProductModal from "./_components/UpdateProductModal";
 import TableRow from "./_components/TableRow";
+import ConfirmModal from "@/component/common-confirm-modal";
 
 export type Product = {
   id: string;
@@ -38,6 +39,9 @@ export default function InventoryClient({
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
+  /** 삭제 모달 대상 */
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
   const handleOpenEdit = useCallback(
     (id: string) => {
       const p = products.find((x) => x.id === id);
@@ -45,6 +49,7 @@ export default function InventoryClient({
     },
     [products]
   );
+
   /** ESC 모달 닫기 */
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -64,11 +69,12 @@ export default function InventoryClient({
     const res = await fetch(apiUrl);
     return res.json();
   }, []);
+
   /** UPDATE 성공 */
   const handleUpdateSuccess = useCallback(async () => {
     setEditingProduct(null);
 
-    const trimmed = q.trim(); // ← URL 기준 검색값
+    const trimmed = q.trim();
     const { items, totalCount } = await fetchProducts(trimmed, page);
 
     setProducts(items);
@@ -88,6 +94,7 @@ export default function InventoryClient({
     [router]
   );
 
+  /** 검색 */
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
 
@@ -102,6 +109,7 @@ export default function InventoryClient({
     setTotalProuctCount(totalCount);
   }
 
+  /** 페이징 */
   async function handlePageChange(e: { selected: number }) {
     const newPage = e.selected + 1;
     const trimmed = q.trim();
@@ -114,24 +122,27 @@ export default function InventoryClient({
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
+
+  /** 삭제 버튼 클릭 → 모달만 열기 */
+  const handleDeleteClick = useCallback((id: string) => {
+    setDeleteTargetId(id);
+  }, []);
+
+  /** 실제 삭제 실행 */
   const handleDelete = useCallback(
     async (id: string) => {
-      const ok = confirm("정말 삭제할까요?");
-      if (!ok) return;
-
-      const res = await fetch(`/inventory/api?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/inventory/api?id=${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) {
         console.error("Delete failed");
         return;
       }
 
-      // 최신 query 값(ref에서 읽기)
       const trimmed = q.trim();
-
-      // 현재 페이지 데이터 다시 불러오기
       const { items, totalCount } = await fetchProducts(trimmed, page);
 
-      // 현재 페이지가 비어있는 경우 → 이전 페이지로 이동
+      // 현재 페이지가 비어 있으면 → 이전 페이지로
       if (items.length === 0 && page > 1) {
         const prevPage = page - 1;
 
@@ -144,12 +155,22 @@ export default function InventoryClient({
         return;
       }
 
-      // 정상 업데이트
+      // 정상 갱신
       setProducts(items);
       setTotalProuctCount(totalCount);
     },
     [fetchProducts, page, q, updateUrl]
   );
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteTargetId(null);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTargetId) return;
+    await handleDelete(deleteTargetId);
+    setDeleteTargetId(null);
+  }, [deleteTargetId, handleDelete]);
 
   const tableHeader = [
     "Name",
@@ -176,6 +197,7 @@ export default function InventoryClient({
           </button>
         </form>
       </div>
+
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="w-full">
@@ -198,12 +220,13 @@ export default function InventoryClient({
                 key={product.id}
                 product={product}
                 onEdit={handleOpenEdit}
-                onDelete={handleDelete}
+                onDelete={handleDeleteClick}
               />
             ))}
           </tbody>
         </table>
       </div>
+
       {/* Pagination */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <ReactPaginate
@@ -235,12 +258,25 @@ export default function InventoryClient({
           disabledClassName="opacity-40 cursor-not-allowed"
         />
       </div>
-      {/* stable props */}
+
+      {/* UPDATE 모달 */}
       {editingProduct && (
         <UpdateProductModal
           product={editingProduct}
           onClose={setEditingProduct}
           onUpdate={handleUpdateSuccess}
+        />
+      )}
+
+      {/* DELETE Confirm Common Modal */}
+      {deleteTargetId && (
+        <ConfirmModal
+          title="Delete Product"
+          description="Are you sure you want to delete this item?"
+          cancelText="Cancel"
+          confirmText="Yes, Delete"
+          onCancel={handleCancelDelete}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </div>
