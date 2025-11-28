@@ -11,6 +11,7 @@ type RowProps = {
 };
 
 function TableRow({ product, onEdit, onDelete }: RowProps) {
+  console.log("TableRow");
   return (
     <tr className="hover:bg-gray-50 text-center">
       <td className="px-6 py-4 text-sm text-gray-500">{product.name}</td>
