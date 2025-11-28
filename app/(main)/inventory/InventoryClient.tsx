@@ -6,18 +6,7 @@ import ReactPaginate from "react-paginate";
 import UpdateProductModal from "./_components/UpdateProductModal";
 import TableRow from "./_components/TableRow";
 import ConfirmModal from "@/component/common-confirm-modal";
-
-export type Product = {
-  id: string;
-  name: string;
-  userId: string;
-  sku: string | null;
-  price: number;
-  quantity: number;
-  lowStockAt: number | null;
-  createdAt: string;
-  updatedAt: string;
-};
+import { Product } from "./page";
 
 export default function InventoryClient({
   initialProducts,

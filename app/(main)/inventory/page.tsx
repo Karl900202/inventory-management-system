@@ -1,14 +1,24 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import InventoryClient from "./InventoryClient";
-
+export type Product = {
+  id: string;
+  name: string;
+  userId: string;
+  sku: string | null;
+  price: number;
+  quantity: number;
+  lowStockAt: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: { query: string; page: number };
+  searchParams: Promise<{ query?: string; page?: string }>;
 }) {
   const user = await getCurrentUser();
-  const params = searchParams;
+  const params = await searchParams;
   const query = (params.query ?? "").trim();
   const rawPage = Number(params.page);
   const page = !rawPage || rawPage < 1 ? 1 : rawPage;
@@ -29,11 +39,11 @@ export default async function InventoryPage({
     }),
     prisma.product.count({ where }),
   ]);
-  const initialProducts = data.map((p) => ({
+  const initialProducts = data.map((p: Product) => ({
     ...p,
     price: Number(p.price),
-    createdAt: p.createdAt.toISOString(),
-    updatedAt: p.updatedAt.toISOString(),
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
   }));
 
   return (
