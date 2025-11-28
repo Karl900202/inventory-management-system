@@ -35,6 +35,7 @@ export default function InventoryClient({
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [query, setQuery] = useState(q);
   const [page, setPage] = useState(initPage);
+  const [inputValue, setInputValue] = useState(q);
   const [totalPageCount, setTotalProuctCount] = useState(totalProductCount);
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -74,12 +75,12 @@ export default function InventoryClient({
   const handleUpdateSuccess = useCallback(async () => {
     setEditingProduct(null);
 
-    const trimmed = q.trim();
+    const trimmed = query.trim();
     const { items, totalCount } = await fetchProducts(trimmed, page);
 
     setProducts(items);
     setTotalProuctCount(totalCount);
-  }, [fetchProducts, q, page]);
+  }, [fetchProducts, query, page]);
 
   const updateUrl = useCallback(
     (q: string, page: number) => {
@@ -97,13 +98,14 @@ export default function InventoryClient({
   /** 검색 */
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-
-    const trimmed = query.trim();
+    const newQueryValue = inputValue || "";
+    const trimmed = newQueryValue.trim();
     const newPage = 1;
 
     updateUrl(trimmed, newPage);
     const { items, totalCount } = await fetchProducts(trimmed, newPage);
 
+    setQuery(newQueryValue);
     setPage(newPage);
     setProducts(items);
     setTotalProuctCount(totalCount);
@@ -112,7 +114,7 @@ export default function InventoryClient({
   /** 페이징 */
   async function handlePageChange(e: { selected: number }) {
     const newPage = e.selected + 1;
-    const trimmed = q.trim();
+    const trimmed = query.trim();
 
     setPage(newPage);
     updateUrl(trimmed, newPage);
@@ -139,7 +141,7 @@ export default function InventoryClient({
         return;
       }
 
-      const trimmed = q.trim();
+      const trimmed = query.trim();
       const { items, totalCount } = await fetchProducts(trimmed, page);
 
       // 현재 페이지가 비어 있으면 → 이전 페이지로
@@ -159,7 +161,7 @@ export default function InventoryClient({
       setProducts(items);
       setTotalProuctCount(totalCount);
     },
-    [fetchProducts, page, q, updateUrl]
+    [fetchProducts, page, query, updateUrl]
   );
 
   const handleCancelDelete = useCallback(() => {
@@ -187,8 +189,8 @@ export default function InventoryClient({
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <form className="flex gap-2" onSubmit={handleSearch}>
           <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             placeholder="Search products..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-purple-500"
           />
