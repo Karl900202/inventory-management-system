@@ -7,6 +7,16 @@ import UpdateProductModal from "./_components/UpdateProductModal";
 import TableRow from "./_components/TableRow";
 import ConfirmModal from "@/component/common-confirm-modal";
 import { Product } from "./page";
+import toast from "react-hot-toast";
+
+const TABLE_HEADER = [
+  "Name",
+  "SKU",
+  "Price",
+  "Quantity",
+  "Low Stock At",
+  "Action",
+];
 
 export default function InventoryClient({
   initialProducts,
@@ -40,24 +50,30 @@ export default function InventoryClient({
     [products]
   );
 
-  /** ESC 모달 닫기 */
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setEditingProduct(null);
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  // /** ESC 모달 닫기 */
+  // useEffect(() => {
+  //   function onKeyDown(e: KeyboardEvent) {
+  //     if (e.key === "Escape") setEditingProduct(null);
+  //   }
+  //   window.addEventListener("keydown", onKeyDown);
+  //   return () => window.removeEventListener("keydown", onKeyDown);
+  // }, []);
 
   const fetchProducts = useCallback(async (q: string, page: number) => {
-    const trimmed = q.trim();
+    try {
+      const trimmed = q.trim();
 
-    const apiUrl = trimmed
-      ? `/inventory/api?q=${encodeURIComponent(trimmed)}&page=${page}`
-      : `/inventory/api?page=${page}`;
+      const apiUrl = trimmed
+        ? `/inventory/api?q=${encodeURIComponent(trimmed)}&page=${page}`
+        : `/inventory/api?page=${page}`;
 
-    const res = await fetch(apiUrl);
-    return res.json();
+      const res = await fetch(apiUrl);
+
+      return res.json();
+    } catch (error) {
+      console.log(error);
+      toast.error("fail fetch product");
+    }
   }, []);
 
   /** UPDATE 성공 */
@@ -79,7 +95,7 @@ export default function InventoryClient({
         ? `/inventory?query=${encodeURIComponent(trimmed)}&page=${page}`
         : `/inventory?page=${page}`;
 
-      router.push(url);
+      router.replace(url);
     },
     [router]
   );
@@ -105,11 +121,10 @@ export default function InventoryClient({
     const newPage = e.selected + 1;
     const trimmed = query.trim();
 
-    setPage(newPage);
-    updateUrl(trimmed, newPage);
-
     const { items, totalCount } = await fetchProducts(trimmed, newPage);
 
+    updateUrl(trimmed, newPage);
+    setPage(newPage);
     setProducts(items);
     setTotalProuctCount(totalCount);
   }
@@ -132,17 +147,18 @@ export default function InventoryClient({
 
       const trimmed = query.trim();
       const { items, totalCount } = await fetchProducts(trimmed, page);
+      const totalPages = Math.max(1, Math.ceil(totalCount / 10));
 
       // 현재 페이지가 비어 있으면 → 이전 페이지로
-      if (items.length === 0 && page > 1) {
+      if (items.length === 0 && page > 1 && page > totalPages) {
         const prevPage = page - 1;
 
-        setPage(prevPage);
         updateUrl(trimmed, prevPage);
 
         const prevData = await fetchProducts(trimmed, prevPage);
         setProducts(prevData.items);
         setTotalProuctCount(prevData.totalCount);
+        setPage(prevPage);
         return;
       }
 
@@ -162,15 +178,6 @@ export default function InventoryClient({
     await handleDelete(deleteTargetId);
     setDeleteTargetId(null);
   }, [deleteTargetId, handleDelete]);
-
-  const tableHeader = [
-    "Name",
-    "SKU",
-    "Price",
-    "Quantity",
-    "Low Stock At",
-    "Action",
-  ];
 
   return (
     <div className="space-y-6">
@@ -194,7 +201,7 @@ export default function InventoryClient({
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              {tableHeader.map((name, idx) => (
+              {TABLE_HEADER.map((name, idx) => (
                 <th
                   key={idx}
                   className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"

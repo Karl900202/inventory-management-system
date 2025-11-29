@@ -1,6 +1,6 @@
 "use client";
 
-import { Product } from "../InventoryClient";
+import { Product } from "../page";
 import toast from "react-hot-toast";
 import React from "react";
 import { useForm } from "react-hook-form";
