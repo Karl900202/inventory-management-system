@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import ReactPaginate from "react-paginate";
+import Pagination from "@/components/Pagination";
 import UpdateProductModal from "./_components/UpdateProductModal";
 import TableRow from "./_components/TableRow";
-import ConfirmModal from "@/component/common-confirm-modal";
+import CommonConfirmModal from "@/components/CommonConfirmModal";
 import { Product } from "./page";
 import toast from "react-hot-toast";
 
@@ -117,17 +117,20 @@ export default function InventoryClient({
   }
 
   /** 페이징 */
-  async function handlePageChange(e: { selected: number }) {
-    const newPage = e.selected + 1;
-    const trimmed = query.trim();
+  const handlePageChange = useCallback(
+    async (e: { selected: number }) => {
+      const newPage = e.selected + 1;
+      const trimmed = query.trim();
 
-    const { items, totalCount } = await fetchProducts(trimmed, newPage);
+      const { items, totalCount } = await fetchProducts(trimmed, newPage);
 
-    updateUrl(trimmed, newPage);
-    setPage(newPage);
-    setProducts(items);
-    setTotalProuctCount(totalCount);
-  }
+      updateUrl(trimmed, newPage);
+      setPage(newPage);
+      setProducts(items);
+      setTotalProuctCount(totalCount);
+    },
+    [fetchProducts, query, updateUrl]
+  );
 
   /** 삭제 버튼 클릭 → 모달만 열기 */
   const handleDeleteClick = useCallback((id: string) => {
@@ -227,33 +230,10 @@ export default function InventoryClient({
 
       {/* Pagination */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
-        <ReactPaginate
-          previousLabel={
-            <span className="flex items-center hover:text-gray-500 gap-2">
-              Prev
-            </span>
-          }
-          nextLabel={
-            <span className="flex items-center hover:text-gray-500 gap-2">
-              Next
-            </span>
-          }
-          breakLabel={"..."}
-          pageCount={Math.ceil(totalPageCount / 10)}
-          marginPagesDisplayed={1}
-          pageRangeDisplayed={3}
+        <Pagination
+          page={page}
+          totalPageCount={totalPageCount}
           onPageChange={handlePageChange}
-          forcePage={page - 1}
-          containerClassName="flex items-center justify-center gap-1.5 select-none"
-          pageClassName="
-            min-w-[30px] h-7 
-            flex items-center justify-center
-            border border-gray-300 text-gray-700
-            rounded-md bg-white
-            hover:bg-gray-100 cursor-pointer transition text-sm
-          "
-          activeClassName="!bg-purple-600 !text-white !border-purple-600"
-          disabledClassName="opacity-40 cursor-not-allowed"
         />
       </div>
 
@@ -268,7 +248,7 @@ export default function InventoryClient({
 
       {/* DELETE Confirm Common Modal */}
       {deleteTargetId && (
-        <ConfirmModal
+        <CommonConfirmModal
           title="Delete Product"
           description="Are you sure you want to delete this item?"
           cancelText="Cancel"

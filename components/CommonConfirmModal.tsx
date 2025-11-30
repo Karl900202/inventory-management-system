@@ -12,7 +12,7 @@ type Props = {
   onConfirm: () => void;
 };
 
-function ConfirmModal({
+function CommonConfirmModal({
   title,
   description,
   confirmText = "Confirm",
@@ -55,4 +55,4 @@ function ConfirmModal({
   );
 }
 
-export default memo(ConfirmModal);
+export default memo(CommonConfirmModal);

@@ -1,4 +1,4 @@
-import ProductsChart from "@/component/products-chart";
+import ProductsChart from "@/components/ProductsChart";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatNumber } from "@/lib/format";

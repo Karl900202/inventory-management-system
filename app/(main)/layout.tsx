@@ -1,5 +1,5 @@
 // app/(dashboard)/layout.tsx
-import Sidebar from "@/component/sidebar";
+import Sidebar from "@/components/Sidebar";
 import { Toaster } from "react-hot-toast";
 
 export default function DashboardLayout({
