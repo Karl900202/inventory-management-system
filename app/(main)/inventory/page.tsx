@@ -30,7 +30,7 @@ export default async function InventoryPage({
     }),
   };
 
-  const [data, totalProductCount] = await Promise.all([
+  const [data, initTotalProductCount] = await Promise.all([
     prisma.product.findMany({
       where,
       take: 10,
@@ -39,11 +39,11 @@ export default async function InventoryPage({
     }),
     prisma.product.count({ where }),
   ]);
-  const initialProducts = data.map((p: Product) => ({
+  const initialProducts = data.map((p) => ({
     ...p,
     price: Number(p.price),
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
   }));
 
   return (
@@ -57,7 +57,7 @@ export default async function InventoryPage({
 
       <InventoryClient
         initialProducts={initialProducts}
-        totalProductCount={totalProductCount}
+        initTotalProductCount={initTotalProductCount}
         initPage={page}
         q={query}
       />

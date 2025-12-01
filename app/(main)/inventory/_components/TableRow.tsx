@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Product } from "../InventoryClient";
+import { Product } from "../page";
 import { formatNumber, formatUSD } from "@/lib/format";
 
 type RowProps = {

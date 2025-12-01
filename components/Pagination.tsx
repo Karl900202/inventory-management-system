@@ -5,11 +5,11 @@ import ReactPaginate from "react-paginate";
 
 interface Props {
   page: number;
-  totalPageCount: number;
+  totalProductCount: number;
   onPageChange: (e: { selected: number }) => void;
 }
 
-function Pagination({ page, totalPageCount, onPageChange }: Props) {
+function Pagination({ page, totalProductCount, onPageChange }: Props) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-5">
       <ReactPaginate
@@ -24,7 +24,7 @@ function Pagination({ page, totalPageCount, onPageChange }: Props) {
           </span>
         }
         breakLabel={"..."}
-        pageCount={Math.ceil(totalPageCount / 10)}
+        pageCount={Math.ceil(totalProductCount / 10)}
         marginPagesDisplayed={1}
         pageRangeDisplayed={3}
         onPageChange={onPageChange}
