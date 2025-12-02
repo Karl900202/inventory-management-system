@@ -9,6 +9,7 @@ import CommonConfirmModal from "@/components/CommonConfirmModal";
 import { Product } from "./page";
 import toast from "react-hot-toast";
 import { useInventoryStore } from "@/store/InventoryStore";
+import EmptyStateRow from "@/components/EmptyStateRow";
 
 const TABLE_HEADER = [
   "Name",
@@ -229,24 +230,30 @@ export default function InventoryClient({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {products.map((product) => (
-              <TableRow
-                key={product.id}
-                product={product}
-                onEdit={handleOpenEdit}
-                onDelete={handleDeleteClick}
-              />
-            ))}
+            {products.length === 0 ? (
+              <EmptyStateRow colSpan={6} description="No data available" />
+            ) : (
+              products.map((product) => (
+                <TableRow
+                  key={product.id}
+                  product={product}
+                  onEdit={handleOpenEdit}
+                  onDelete={handleDeleteClick}
+                />
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Pagination */}
-      <Pagination
-        page={page}
-        totalProductCount={totalProductCount}
-        onPageChange={handlePageChange}
-      />
+      {products.length === 0 || (
+        <Pagination
+          page={page}
+          totalProductCount={totalProductCount}
+          onPageChange={handlePageChange}
+        />
+      )}
 
       {/* Update Modal */}
       {editingProduct && (
