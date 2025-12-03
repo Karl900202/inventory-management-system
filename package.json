@@ -17,6 +17,7 @@
     "@stackframe/stack": "^2.8.51",
     "@tanstack/react-query": "^5.90.11",
     "@tanstack/react-query-devtools": "^5.91.1",
+    "axios": "^1.13.2",
     "next": "^16.0.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
