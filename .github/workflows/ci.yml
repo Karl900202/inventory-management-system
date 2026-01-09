@@ -58,5 +58,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           NODE_ENV: production
+          NEXT_PUBLIC_STACK_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_STACK_PROJECT_ID || 'dummy-project-id-for-ci' }}
+          STACK_SERVER_KEY: ${{ secrets.STACK_SERVER_KEY || 'dummy-server-key-for-ci' }}
         run: npm run build
 
