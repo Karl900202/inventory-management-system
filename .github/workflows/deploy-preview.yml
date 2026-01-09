@@ -27,5 +27,6 @@ jobs:
         env:
           NODE_ENV: production
           NEXT_PUBLIC_STACK_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_STACK_PROJECT_ID || 'dummy-project-id-for-ci' }}
+          NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY: ${{ secrets.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY || 'dummy-publishable-client-key-for-ci' }}
           STACK_SERVER_KEY: ${{ secrets.STACK_SERVER_KEY || 'dummy-server-key-for-ci' }}
         run: npm run build
