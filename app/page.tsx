@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 export default async function Home() {
   const user = await getCurrentUserHome();
 
-  // 로그인 상태 → /dashboard로 리다이렉트
+  // 로그인 상태 → /dashboard로 리다이렉트.
   if (user) {
     redirect("/dashboard");
   }
