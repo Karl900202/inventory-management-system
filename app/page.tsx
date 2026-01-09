@@ -10,7 +10,7 @@ export default async function Home() {
   if (user) {
     redirect("/dashboard");
   }
-
+  console.log("CICD");
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center">
       <section className="container mx-auto px-4 py-16 text-center">
