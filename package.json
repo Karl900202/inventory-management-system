@@ -9,9 +9,6 @@
     "lint": "eslint",
     "postinstall": "prisma generate"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@headlessui/react": "^2.2.9",
     "@prisma/client": "^6.19.0",
