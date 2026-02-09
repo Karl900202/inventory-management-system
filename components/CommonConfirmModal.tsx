@@ -10,6 +10,7 @@ type Props = {
   cancelText?: string;
   onCancel: () => void;
   onConfirm: () => void;
+  disabled?: boolean;
 };
 
 function CommonConfirmModal({
@@ -19,6 +20,7 @@ function CommonConfirmModal({
   cancelText = "Cancel",
   onCancel,
   onConfirm,
+  disabled = false,
 }: Props) {
   return (
     <Transition appear show as={Fragment}>
@@ -36,14 +38,16 @@ function CommonConfirmModal({
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={onCancel}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={disabled}
               >
                 {cancelText}
               </button>
 
               <button
                 onClick={onConfirm}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={disabled}
               >
                 {confirmText}
               </button>

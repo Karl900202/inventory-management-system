@@ -4,6 +4,8 @@ import { Product } from "../page";
 import toast from "react-hot-toast";
 import React from "react";
 import { useForm } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
+import { updateProduct, type UpdateProductData } from "@/lib/api";
 
 type FormValues = {
   name: string;
@@ -25,7 +27,7 @@ function UpdateProductModal({
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting, errors },
+    formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
       name: product.name,
@@ -36,31 +38,26 @@ function UpdateProductModal({
     },
   });
 
-  const onSubmit = async (data: FormValues) => {
-    try {
-      const res = await fetch("/inventory/api", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: product.id,
-          name: data.name,
-          sku: data.sku === "-" ? null : data.sku || null,
-          price: Number(data.price),
-          quantity: Number(data.quantity),
-          lowStockAt: Number(data.lowStockAt),
-        }),
-      });
-
-      if (!res.ok) {
-        toast.error("fail update");
-        return;
-      }
-
+  const updateProductMutation = useMutation({
+    mutationFn: (data: UpdateProductData) => updateProduct(data),
+    onSuccess: async () => {
       await onUpdate();
-    } catch (err) {
-      console.error(err);
+    },
+    onError: (error: Error) => {
+      console.error(error);
       toast.error("fail update");
-    }
+    },
+  });
+
+  const onSubmit = async (data: FormValues) => {
+    updateProductMutation.mutate({
+      id: product.id,
+      name: data.name,
+      sku: data.sku === "-" ? null : data.sku || null,
+      price: Number(data.price),
+      quantity: Number(data.quantity),
+      lowStockAt: Number(data.lowStockAt),
+    });
   };
 
   return (
@@ -162,11 +159,11 @@ function UpdateProductModal({
             </button>
 
             <button
-              disabled={isSubmitting}
+              disabled={updateProductMutation.isPending}
               type="submit"
               className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
             >
-              {isSubmitting ? "saving..." : "Save"}
+              {updateProductMutation.isPending ? "saving..." : "Save"}
             </button>
           </div>
         </form>

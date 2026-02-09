@@ -16,6 +16,7 @@ import { Product } from "./page";
 import toast from "react-hot-toast";
 import { useInventoryStore } from "@/store/InventoryStore";
 import EmptyStateRow from "@/components/EmptyStateRow";
+import { TableRowSkeleton } from "@/components/LoadingSkeleton";
 
 const TABLE_HEADER = [
   "Name",
@@ -26,16 +27,7 @@ const TABLE_HEADER = [
   "Action",
 ];
 
-// Fetcher 함수 분리
-const fetchInventory = async (q: string, page: number) => {
-  const trimmed = q.trim();
-  const apiUrl = trimmed
-    ? `/inventory/api?q=${encodeURIComponent(trimmed)}&page=${page}`
-    : `/inventory/api?page=${page}`;
-  const res = await fetch(apiUrl);
-  if (!res.ok) throw new Error("Failed to fetch");
-  return res.json();
-};
+import { fetchInventory, deleteProduct } from "@/lib/api";
 
 export default function InventoryClient({
   initialProducts,
@@ -79,7 +71,7 @@ export default function InventoryClient({
   }, []);
 
   // --- React Query: 데이터 조회 ---
-  const { data, isError } = useQuery({
+  const { data, isError, isFetching } = useQuery({
     queryKey: ["inventory", query, page],
     queryFn: () => fetchInventory(query, page),
     placeholderData: keepPreviousData, // 페이지네이션 시 깜빡임 방지
@@ -104,13 +96,21 @@ export default function InventoryClient({
     }
   }, [isError]);
 
+  // URL 업데이트 헬퍼
+  const updateUrl = useCallback(
+    (q: string, page: number) => {
+      const trimmed = q.trim();
+      const url = trimmed
+        ? `/inventory?query=${encodeURIComponent(trimmed)}&page=${page}`
+        : `/inventory?page=${page}`;
+      router.replace(url);
+    },
+    [router]
+  );
+
   // --- React Query: 삭제 Mutation ---
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/inventory/api?id=${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
-      return res.json();
-    },
+    mutationFn: deleteProduct,
     onSuccess: async () => {
       // 데이터 갱신
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
@@ -137,18 +137,6 @@ export default function InventoryClient({
       if (p) setEditingProduct(p);
     },
     [products]
-  );
-
-  // URL 업데이트 헬퍼
-  const updateUrl = useCallback(
-    (q: string, page: number) => {
-      const trimmed = q.trim();
-      const url = trimmed
-        ? `/inventory?query=${encodeURIComponent(trimmed)}&page=${page}`
-        : `/inventory?page=${page}`;
-      router.replace(url);
-    },
-    [router]
   );
 
   // 수정 성공 시 핸들러
@@ -212,15 +200,24 @@ export default function InventoryClient({
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Search products..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-purple-500"
+            disabled={isFetching}
           />
-          <button className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-            Search
+          <button
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isFetching}
+          >
+            {isFetching ? "Searching..." : "Search"}
           </button>
         </form>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden relative">
+        {isFetching && data && (
+          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+            <div className="animate-spin h-8 w-8 rounded-full border-2 border-gray-300 border-t-purple-600"></div>
+          </div>
+        )}
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -235,7 +232,9 @@ export default function InventoryClient({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {products.length === 0 ? (
+            {isFetching && !data ? (
+              <TableRowSkeleton colSpan={6} />
+            ) : products.length === 0 ? (
               <EmptyStateRow colSpan={6} description="No data available" />
             ) : (
               products.map((product) => (
@@ -253,11 +252,18 @@ export default function InventoryClient({
 
       {/* Pagination */}
       {products.length === 0 || (
-        <Pagination
-          page={page}
-          totalProductCount={totalProductCount}
-          onPageChange={handlePageChange}
-        />
+        <div className="relative">
+          {isFetching && (
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center rounded-lg">
+              <div className="animate-spin h-6 w-6 rounded-full border-2 border-gray-300 border-t-purple-600"></div>
+            </div>
+          )}
+          <Pagination
+            page={page}
+            totalProductCount={totalProductCount}
+            onPageChange={handlePageChange}
+          />
+        </div>
       )}
 
       {/* Update Modal */}
@@ -275,9 +281,10 @@ export default function InventoryClient({
           title="Delete Product"
           description="Are you sure you want to delete this item?"
           cancelText="Cancel"
-          confirmText="Yes, Delete"
+          confirmText={deleteMutation.isPending ? "Deleting..." : "Yes, Delete"}
           onCancel={handleCancelDelete}
           onConfirm={handleConfirmDelete}
+          disabled={deleteMutation.isPending}
         />
       )}
     </div>

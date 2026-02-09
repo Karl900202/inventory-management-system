@@ -2,6 +2,8 @@
 
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createProduct, type ProductFormData } from "@/lib/api";
 
 type FormValues = {
   name: string;
@@ -12,11 +14,13 @@ type FormValues = {
 };
 
 export default function AddProductForm() {
+  const queryClient = useQueryClient();
+
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
       name: "",
@@ -27,32 +31,22 @@ export default function AddProductForm() {
     },
   });
 
-  async function onSubmit(data: FormValues) {
-    const body = {
-      ...data,
-      sku: data.sku || undefined,
-      lowStockAt: data.lowStockAt ?? undefined,
-    };
-
-    try {
-      const res = await fetch("/add-product/api", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        toast.error("Failed: " + JSON.stringify(err));
-        return;
-      }
-
+  const createProductMutation = useMutation({
+    mutationFn: (data: ProductFormData) => createProduct(data),
+    onSuccess: () => {
       toast.success("Product created!");
       reset();
-    } catch (error) {
+      // 인벤토리 쿼리 무효화하여 최신 데이터 반영
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+    },
+    onError: (error: Error) => {
       console.error(error);
-      toast.error("Failed to create product.");
-    }
+      toast.error("Failed: " + error.message);
+    },
+  });
+
+  async function onSubmit(data: FormValues) {
+    createProductMutation.mutate(data);
   }
 
   return (
@@ -150,10 +144,10 @@ export default function AddProductForm() {
       <div className="flex justify-center gap-5">
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={createProductMutation.isPending}
           className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
         >
-          {isSubmitting ? "Adding..." : "Add Product"}
+          {createProductMutation.isPending ? "Adding..." : "Add Product"}
         </button>
 
         <a
