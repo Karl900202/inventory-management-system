@@ -96,6 +96,19 @@ export default function InventoryClient({
     }
   }, [isError]);
 
+  // 로딩 중 스크롤 막기
+  useEffect(() => {
+    if (isFetching && data) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    // cleanup 함수로 컴포넌트 언마운트 시에도 스크롤 복원
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isFetching, data]);
+
   // URL 업데이트 헬퍼
   const updateUrl = useCallback(
     (q: string, page: number) => {
@@ -191,7 +204,15 @@ export default function InventoryClient({
   }, [deleteTargetId, deleteMutation]);
 
   return (
-    <div className="space-y-6">
+    <>
+      {/* 전체 화면 로딩 오버레이 (LNB 제외) */}
+      {isFetching && data && (
+        <div className="fixed left-64 right-0 top-0 bottom-0 bg-white/40 z-30 flex items-center justify-center">
+          <div className="animate-spin h-12 w-12 rounded-full border-4 border-gray-300 border-t-purple-600"></div>
+        </div>
+      )}
+      <div className="space-y-6">
+
       {/* Search */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <form className="flex gap-2" onSubmit={handleSearch}>
@@ -212,12 +233,7 @@ export default function InventoryClient({
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden relative">
-        {isFetching && data && (
-          <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-            <div className="animate-spin h-8 w-8 rounded-full border-2 border-gray-300 border-t-purple-600"></div>
-          </div>
-        )}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -252,18 +268,11 @@ export default function InventoryClient({
 
       {/* Pagination */}
       {products.length === 0 || (
-        <div className="relative">
-          {isFetching && (
-            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center rounded-lg">
-              <div className="animate-spin h-6 w-6 rounded-full border-2 border-gray-300 border-t-purple-600"></div>
-            </div>
-          )}
-          <Pagination
-            page={page}
-            totalProductCount={totalProductCount}
-            onPageChange={handlePageChange}
-          />
-        </div>
+        <Pagination
+          page={page}
+          totalProductCount={totalProductCount}
+          onPageChange={handlePageChange}
+        />
       )}
 
       {/* Update Modal */}
@@ -287,6 +296,7 @@ export default function InventoryClient({
           disabled={deleteMutation.isPending}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
